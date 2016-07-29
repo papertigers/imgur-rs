@@ -2,6 +2,7 @@
 name = "imgur_rs"
 version = "0.1.0"
 authors = ["Mike Zeller <mike@mikezeller.net>"]
+repository = "https://github.com/crumblingstatue/rust-imgur"
 
 [dependencies]
 hyper = '0.9'
