@@ -2,7 +2,7 @@
 name = "imgur_rs"
 version = "0.1.0"
 authors = ["Mike Zeller <mike@mikezeller.net>"]
-repository = "https://github.com/crumblingstatue/rust-imgur"
+repository = "https://github.com/papertigers/imgur-rs/"
 description = "Implementation of a few imgur api endpoints"
 license = "MIT"
 
