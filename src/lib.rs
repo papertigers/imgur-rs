@@ -6,11 +6,12 @@ extern crate failure;
 extern crate reqwest;
 
 mod models;
-use models::{Album, Data};
+use models::{Album, Data, Image};
 
 use std::fmt;
 
 use failure::Error;
+use serde::Deserialize;
 use reqwest::{header, Client};
 
 const API_BASE: &'static str = "https://api.imgur.com/3/";
@@ -48,13 +49,32 @@ impl ImgurHandle {
         }
     }
 
-    pub fn get_album(&self, id: &str) -> Result<Data<Album>, Error> {
-        let album: Data<Album> = self.client
-            .get(api_url!(format!("{}/{}", "album", id)))
+    fn raw_request<T>(&self, path: &str) -> Result<Data<T>, Error>
+        where for<'de> T: Deserialize<'de>
+    {
+        let res: Data<T> = self.client
+            .get(api_url!(path))
             .send()?
             .json()?;
 
-        Ok(album)
+        // TODO handle status code before json parse
+
+        Ok(res)
+    }
+
+    /// Get an imgur image by id
+    pub fn get_image(&self, id: &str) -> Result<Data<Image>, Error> {
+        self.raw_request(api_url!(format!("image/{}", id)))
+    }
+
+    /// Get an imgur album by id
+    pub fn get_album(&self, id: &str) -> Result<Data<Album>, Error> {
+        self.raw_request(api_url!(format!("album/{}", id)))
+    }
+
+    /// Get an imgur gallery by id which is really just an alias for an imgur album
+    pub fn get_gallery(&self, id: &str) -> Result<Data<Album>, Error> {
+        self.get_album(id)
     }
 }
 
