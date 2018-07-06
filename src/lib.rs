@@ -5,6 +5,7 @@ extern crate serde;
 extern crate failure;
 extern crate reqwest;
 
+mod download;
 mod models;
 use models::{Album, Data, Image};
 
@@ -52,28 +53,28 @@ impl ImgurHandle {
     fn raw_request<T>(&self, path: &str) -> Result<Data<T>, Error>
         where for<'de> T: Deserialize<'de>
     {
-        let res: Data<T> = self.client
+        let mut res = self.client
             .get(api_url!(path))
-            .send()?
-            .json()?;
+            .send()?;
 
         // TODO handle status code before json parse
 
-        Ok(res)
+        let data: Data<T> = res.json()?;
+        Ok(data)
     }
 
     /// Get an imgur image by id
     pub fn get_image(&self, id: &str) -> Result<Data<Image>, Error> {
-        self.raw_request(api_url!(format!("image/{}", id)))
+        self.raw_request(format!("image/{}", id).as_str())
     }
 
     /// Get an imgur album by id
     pub fn get_album(&self, id: &str) -> Result<Data<Album>, Error> {
-        self.raw_request(api_url!(format!("album/{}", id)))
+        self.raw_request(format!("album/{}", id).as_str())
     }
 
     /// Get an imgur gallery by id which is really just an alias for an imgur album
-    pub fn get_gallery(&self, id: &str) -> Result<Data<Album>, Error> {
+    pub fn get_gallery_as_album(&self, id: &str) -> Result<Data<Album>, Error> {
         self.get_album(id)
     }
 }

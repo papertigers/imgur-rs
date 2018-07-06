@@ -2,31 +2,31 @@ use serde::{Deserialize, Deserializer};
 
 #[derive(Debug, Deserialize)]
 pub struct Data<T> {
-    data: T,
+    pub data: T,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct Album {
-    id: String,
+    pub id: String,
     #[serde(deserialize_with = "null_string")]
-    title: String,
+    pub title: String,
     #[serde(deserialize_with = "null_string")]
-    description: String,
-    datetime: u64,
-    images: Vec<Image>,
+    pub description: String,
+    pub datetime: u64,
+    pub images: Vec<Image>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct Image {
-    id: String,
+    pub id: String,
     #[serde(deserialize_with = "null_string")]
-    title: String,
+    pub title: String,
     #[serde(deserialize_with = "null_string")]
-    description: String,
-    datetime: u64,
+    pub description: String,
+    pub datetime: u64,
     #[serde(rename = "type")]
-    mime: String,
-    link: String,
+    pub mime: String,
+    pub link: String,
 }
 
 fn null_string<'de, D>(d: D) -> Result<String, D::Error>
