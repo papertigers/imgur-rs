@@ -1,6 +1,16 @@
 use serde::{Deserialize, Deserializer};
 
+/// A trait that signifies the type has an a url and filename
+pub trait ProvidesFile {
+    /// Get the download url from the type
+    fn get_url(&self) -> &str;
+    /// Get the filename from the type
+    fn filename(&self) -> &str;
+}
+
 /// Imgur Data Response
+///
+/// Really just a container for an `Album` or an `Image`
 #[derive(Debug, Deserialize)]
 pub struct Data<T> {
     /// Data field in imgur api response
@@ -50,4 +60,19 @@ where
     D: Deserializer<'de>,
 {
     Deserialize::deserialize(d).map(|x: Option<_>| x.unwrap_or("".to_string()))
+}
+
+impl ProvidesFile for Image {
+    /// Get the image's url
+    fn get_url(&self) -> &str {
+        self.link.as_str()
+    }
+
+    /// Get the image's filename, which is just the last part of the url path
+    fn filename(&self) -> &str {
+        self.get_url()
+            .split("/")
+            .last()
+            .expect("imgur api provided bad data in the link field")
+    }
 }

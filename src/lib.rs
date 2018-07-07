@@ -10,13 +10,17 @@
 extern crate serde_derive;
 extern crate serde;
 
+#[macro_use]
 extern crate failure;
+
 extern crate reqwest;
 
 mod models;
-pub use models::{Album, Data, Image};
+pub use models::{Album, Data, Image, ProvidesFile};
 
 use std::fmt;
+use std::io;
+use std::io::Write;
 
 use failure::Error;
 use reqwest::{header, Client};
@@ -74,6 +78,18 @@ impl ImgurHandle {
         Ok(data)
     }
 
+    fn download_request<U, W: ?Sized>(&self, item: &U, w: &mut W) -> Result<u64, Error>
+    where
+        U: ProvidesFile,
+        W: Write,
+    {
+        let mut res = self.client.get(item.get_url()).send()?;
+        match io::copy(&mut res, w) {
+            Ok(b) => Ok(b),
+            Err(_) => Err(format_err!("error writing to destination")),
+        }
+    }
+
     /// Get an imgur image by id
     pub fn get_image(&self, id: &str) -> Result<Data<Image>, Error> {
         self.api_request(format!("image/{}", id).as_str())
@@ -87,6 +103,14 @@ impl ImgurHandle {
     /// Get an imgur gallery by id which is really just an alias for an imgur album
     pub fn get_gallery_as_album(&self, id: &str) -> Result<Data<Album>, Error> {
         self.get_album(id)
+    }
+
+    /// Download an Imgur image
+    pub fn download_image<W: ?Sized>(&self, i: &Image, p: &mut W) -> Result<u64, Error>
+    where
+        W: Write,
+    {
+        self.download_request(i, p)
     }
 }
 
