@@ -1,3 +1,11 @@
+#![deny(warnings)]
+#![deny(missing_docs)]
+
+//! # imgur_rs
+//!
+//! The `imgur_rs` crate provides a high-level handle to the Imgur API by leveraging the `reqwest`
+//! crate for making HTTP requests.
+
 #[macro_use]
 extern crate serde_derive;
 extern crate serde;
@@ -5,15 +13,14 @@ extern crate serde;
 extern crate failure;
 extern crate reqwest;
 
-mod download;
 mod models;
-use models::{Album, Data, Image};
+pub use models::{Album, Data, Image};
 
 use std::fmt;
 
 use failure::Error;
-use serde::Deserialize;
 use reqwest::{header, Client};
+use serde::Deserialize;
 
 const API_BASE: &'static str = "https://api.imgur.com/3/";
 
@@ -24,7 +31,12 @@ macro_rules! api_url (
         );
     );
 
-/// Handle to the imgur api
+/// Handle to the Imgur API that allows you to get albums and images.
+///
+/// # Example
+/// ```
+/// let handle = imgur_rs::ImgurHandle::new("Client-ID".to_string());
+/// ```
 pub struct ImgurHandle {
     client_id: String,
     client: Client,
@@ -50,12 +62,11 @@ impl ImgurHandle {
         }
     }
 
-    fn raw_request<T>(&self, path: &str) -> Result<Data<T>, Error>
-        where for<'de> T: Deserialize<'de>
+    fn api_request<T>(&self, path: &str) -> Result<Data<T>, Error>
+    where
+        for<'de> T: Deserialize<'de>,
     {
-        let mut res = self.client
-            .get(api_url!(path))
-            .send()?;
+        let mut res = self.client.get(api_url!(path)).send()?;
 
         // TODO handle status code before json parse
 
@@ -65,12 +76,12 @@ impl ImgurHandle {
 
     /// Get an imgur image by id
     pub fn get_image(&self, id: &str) -> Result<Data<Image>, Error> {
-        self.raw_request(format!("image/{}", id).as_str())
+        self.api_request(format!("image/{}", id).as_str())
     }
 
     /// Get an imgur album by id
     pub fn get_album(&self, id: &str) -> Result<Data<Album>, Error> {
-        self.raw_request(format!("album/{}", id).as_str())
+        self.api_request(format!("album/{}", id).as_str())
     }
 
     /// Get an imgur gallery by id which is really just an alias for an imgur album
