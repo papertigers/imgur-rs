@@ -23,6 +23,7 @@ use std::io;
 use std::io::Write;
 
 use failure::Error;
+use reqwest::header::Headers;
 use reqwest::{header, Client};
 use serde::Deserialize;
 
@@ -83,7 +84,10 @@ impl ImgurHandle {
         U: ProvidesFile,
         W: Write,
     {
-        let mut res = self.client.get(item.get_url()).send()?;
+        let mut res = self.client
+            .get(item.get_url())
+            .headers(Headers::new()) // Clear Client-ID
+            .send()?;
         match io::copy(&mut res, w) {
             Ok(b) => Ok(b),
             Err(_) => Err(format_err!("error writing to destination")),
