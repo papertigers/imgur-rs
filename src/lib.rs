@@ -16,7 +16,7 @@ extern crate failure;
 extern crate reqwest;
 
 mod models;
-pub use models::{Album, Data, Image, ProvidesFile};
+pub use models::{Album, Data, Image, ImgurError, ProvidesFile};
 
 use std::fmt;
 use std::io;
@@ -44,7 +44,8 @@ macro_rules! api_url (
 /// ```
 pub struct ImgurHandle {
     client_id: String,
-    client: Client,
+    api_client: Client,
+    download_client: Client,
 }
 
 impl ImgurHandle {
@@ -56,14 +57,22 @@ impl ImgurHandle {
         headers.set(header::Authorization(
             format!("Client-ID {}", client_id).to_string(),
         ));
-        let client = Client::builder()
+
+        // API client sets an Authorization header
+        let api_client = Client::builder()
             .default_headers(headers)
             .build()
-            .expect("failed to build client");
+            .expect("failed to build api client");
+
+        // Used exclusively for downloading content
+        let download_client = Client::builder()
+            .build()
+            .expect("failed to build download client");
 
         ImgurHandle {
             client_id: client_id,
-            client: client,
+            api_client: api_client,
+            download_client: download_client,
         }
     }
 
@@ -71,12 +80,19 @@ impl ImgurHandle {
     where
         for<'de> T: Deserialize<'de>,
     {
-        let mut res = self.client.get(api_url!(path)).send()?;
+        let mut res = self.api_client.get(api_url!(path)).send()?;
+        if res.status().is_success() {
+            let data: Data<T> = res.json()?;
+            return Ok(data);
+        }
 
-        // TODO handle status code before json parse
-
-        let data: Data<T> = res.json()?;
-        Ok(data)
+        let ires: Data<ImgurError> = res.json()?;
+        Err(format_err!(
+            "{} - {}: {}",
+            ires.data.request,
+            res.status(),
+            ires.data.error
+        ))
     }
 
     fn download_request<U, W: ?Sized>(&self, item: &U, w: &mut W) -> Result<u64, Error>
@@ -84,12 +100,19 @@ impl ImgurHandle {
         U: ProvidesFile,
         W: Write,
     {
-        let mut res = self.client
+        let mut res = self.download_client
             .get(item.get_url())
             .headers(Headers::new()) // Clear Client-ID
             .send()?;
+
+        if !res.status().is_success() {
+            let res: Data<ImgurError> = res.json()?;
+            return Err(format_err!("{}", res.data.error));
+        }
+
         match io::copy(&mut res, w) {
             Ok(b) => Ok(b),
+            // XXX stop being lazy and Impl an error type that also wraps std::io::Error
             Err(_) => Err(format_err!("error writing to destination")),
         }
     }
@@ -110,11 +133,11 @@ impl ImgurHandle {
     }
 
     /// Download an Imgur image
-    pub fn download_image<W: ?Sized>(&self, i: &Image, p: &mut W) -> Result<u64, Error>
+    pub fn download_image<W: ?Sized>(&self, i: &Image, w: &mut W) -> Result<u64, Error>
     where
         W: Write,
     {
-        self.download_request(i, p)
+        self.download_request(i, w)
     }
 }
 

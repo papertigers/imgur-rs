@@ -54,6 +54,17 @@ pub struct Image {
     pub link: String,
 }
 
+/// Imgur Error
+#[derive(Debug, Deserialize)]
+pub struct ImgurError {
+    /// Imgur's error message from the failed request
+    pub error: String,
+    /// Request path that failed
+    pub request: String,
+    /// HTTP Method of the failed request
+    pub method: String,
+}
+
 /// Used to translate a `null` from the Imgur API as an empty string.
 fn null_string<'de, D>(d: D) -> Result<String, D::Error>
 where
