@@ -54,15 +54,15 @@ pub struct Image {
     pub link: String,
 }
 
-/// Imgur Error
+/// Imgur API Error
 #[derive(Debug, Deserialize)]
-pub struct ImgurError {
+pub(crate) struct ImgurError {
     /// Imgur's error message from the failed request
-    pub error: String,
+    pub(crate) error: String,
     /// Request path that failed
-    pub request: String,
+    pub(crate) request: String,
     /// HTTP Method of the failed request
-    pub method: String,
+    pub(crate) method: String,
 }
 
 /// Used to translate a `null` from the Imgur API as an empty string.

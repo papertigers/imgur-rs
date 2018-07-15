@@ -16,7 +16,8 @@ extern crate failure;
 extern crate reqwest;
 
 mod models;
-pub use models::{Album, Data, Image, ImgurError, ProvidesFile};
+use models::ImgurError;
+pub use models::{Album, Data, Image, ProvidesFile};
 
 use std::fmt;
 use std::io;
@@ -24,7 +25,7 @@ use std::io::Write;
 
 use failure::Error;
 use reqwest::header::Headers;
-use reqwest::{header, Client};
+use reqwest::{header, Client, StatusCode};
 use serde::Deserialize;
 
 const API_BASE: &'static str = "https://api.imgur.com/3/";
@@ -87,12 +88,7 @@ impl ImgurHandle {
         }
 
         let ires: Data<ImgurError> = res.json()?;
-        Err(format_err!(
-            "{} - {}: {}",
-            ires.data.request,
-            res.status(),
-            ires.data.error
-        ))
+        Err(imgur_error_to_failure(ires.data, res.status()))
     }
 
     fn download_request<U, W: ?Sized>(&self, item: &U, w: &mut W) -> Result<u64, Error>
@@ -106,14 +102,15 @@ impl ImgurHandle {
             .send()?;
 
         if !res.status().is_success() {
-            let res: Data<ImgurError> = res.json()?;
-            return Err(format_err!("{}", res.data.error));
+            let ires: Data<ImgurError> = res.json()?;
+            return Err(imgur_error_to_failure(ires.data, res.status()));
         }
 
         match io::copy(&mut res, w) {
             Ok(b) => Ok(b),
-            // XXX stop being lazy and Impl an error type that also wraps std::io::Error
-            Err(_) => Err(format_err!("error writing to destination")),
+            // For now we rely on `Display`, if in the future we need a better way to deal with
+            // this we can implement a custom error type
+            Err(e) => Err(format_err!("{}", e)),
         }
     }
 
@@ -139,6 +136,10 @@ impl ImgurHandle {
     {
         self.download_request(i, w)
     }
+}
+
+fn imgur_error_to_failure(e: ImgurError, s: StatusCode) -> Error {
+    format_err!("{}: {} ({})", s, e.error, e.request)
 }
 
 impl fmt::Debug for ImgurHandle {
