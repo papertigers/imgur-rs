@@ -70,7 +70,7 @@ fn null_string<'de, D>(d: D) -> Result<String, D::Error>
 where
     D: Deserializer<'de>,
 {
-    Deserialize::deserialize(d).map(|x: Option<_>| x.unwrap_or("".to_string()))
+    Deserialize::deserialize(d).map(|x: Option<_>| x.unwrap_or_default())
 }
 
 impl ProvidesFile for Image {
@@ -82,7 +82,7 @@ impl ProvidesFile for Image {
     /// Get the image's filename, which is just the last part of the url path
     fn filename(&self) -> &str {
         self.get_url()
-            .split("/")
+            .split('/')
             .last()
             .expect("imgur api provided bad data in the link field")
     }

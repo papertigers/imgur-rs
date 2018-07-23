@@ -28,7 +28,7 @@ use reqwest::header::Headers;
 use reqwest::{header, Client, StatusCode};
 use serde::Deserialize;
 
-const API_BASE: &'static str = "https://api.imgur.com/3/";
+const API_BASE: &str = "https://api.imgur.com/3/";
 
 /// macro to easily generate the full path for the http client
 macro_rules! api_url (
@@ -71,9 +71,9 @@ impl ImgurHandle {
             .expect("failed to build download client");
 
         ImgurHandle {
-            client_id: client_id,
-            api_client: api_client,
-            download_client: download_client,
+            client_id,
+            api_client,
+            download_client,
         }
     }
 
@@ -88,7 +88,7 @@ impl ImgurHandle {
         }
 
         let ires: Data<ImgurError> = res.json()?;
-        Err(imgur_error_to_failure(ires.data, res.status()))
+        Err(imgur_error_to_failure(&ires.data, res.status()))
     }
 
     fn download_request<U, W: ?Sized>(&self, item: &U, w: &mut W) -> Result<u64, Error>
@@ -103,7 +103,7 @@ impl ImgurHandle {
 
         if !res.status().is_success() {
             let ires: Data<ImgurError> = res.json()?;
-            return Err(imgur_error_to_failure(ires.data, res.status()));
+            return Err(imgur_error_to_failure(&ires.data, res.status()));
         }
 
         match io::copy(&mut res, w) {
@@ -138,7 +138,7 @@ impl ImgurHandle {
     }
 }
 
-fn imgur_error_to_failure(e: ImgurError, s: StatusCode) -> Error {
+fn imgur_error_to_failure(e: &ImgurError, s: StatusCode) -> Error {
     format_err!("{}: {} ({})", s, e.error, e.request)
 }
 
